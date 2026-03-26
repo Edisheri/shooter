@@ -41,6 +41,8 @@ g++ -o shooter shooter.cpp -lsfml-graphics -lsfml-window -lsfml-system
 ./shooter
 ```
 
+**Важно:** Код обновлен для работы с SFML 2.x. Если у вас возникли ошибки компиляции, убедитесь, что используете SFML версии 2.5 или новее.
+
 ### Вариант 2: Использование Makefile
 
 ```bash
@@ -54,16 +56,34 @@ make
 make clean
 ```
 
-### Вариант 3: Windows (Command Prompt)
+### Вариант 3: Windows (MSYS2/MinGW)
 
-Предполагается, что SFML установлен в `C:\SFML`:
+Для Windows рекомендуется использовать MSYS2:
 
-```cmd
-g++ -o shooter.exe shooter.cpp -IC:\SFML\include -LC:\SFML\lib -lsfml-graphics -lsfml-window -lsfml-system
-shooter.exe
-```
+1. Установите [MSYS2](https://www.msys2.org/)
+2. Откройте терминал MSYS2 MinGW x64 и установите зависимости:
+   ```bash
+   pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SFML
+   ```
+3. Скомпилируйте игру:
+   ```bash
+   g++ -o shooter.exe shooter.cpp -lsfml-graphics -lsfml-window -lsfml-system
+   ```
+4. Запустите:
+   ```cmd
+   shooter.exe
+   ```
 
 *Примечание: Убедитесь, что DLL-файлы SFML находятся в той же папке, что и `.exe`, или в системном PATH.*
+
+### Вариант 4: Windows (Visual Studio)
+
+1. Установите [Visual Studio Community](https://visualstudio.microsoft.com/)
+2. Скачайте и установите [SFML](https://www.sfml-dev.org/download.php)
+3. Создайте новый проект Console Application
+4. Добавьте пути к include и lib файлам SFML в настройках проекта
+5. Добавьте зависимости: `sfml-graphics.lib`, `sfml-window.lib`, `sfml-system.lib`
+6. Скомпилируйте и запустите
 
 ## 🎮 Управление
 
@@ -98,11 +118,17 @@ shooter.exe
 ### Ошибка: "undefined reference to sf::..."
 Убедитесь, что библиотеки SFML правильно подключены при компиляции. Проверьте флаги `-lsfml-graphics -lsfml-window -lsfml-system`.
 
+### Ошибка: "'sf::Keyboard::W' is not a member of 'sf::Keyboard'"
+Обновите код до использования `sf::Keyboard::Key::W` или установите SFML версии 2.5+. В новых версиях SFML клавиши находятся в пространстве имен `Key`.
+
 ### Ошибка: "SFML/Graphics.hpp not found"
 Установите пакет разработки SFML (`libsfml-dev` на Linux) или проверьте пути включения (`-I`) на Windows.
 
 ### Игра запускается, но окно сразу закрывается
 Проверьте, установлены ли все зависимости и драйверы графики. Попробуйте запустить игру из терминала, чтобы увидеть сообщения об ошибках.
+
+### Ошибка компиляции на Windows с MSYS2
+Убедитесь, что вы используете правильный терминал (MSYS2 MinGW x64), а не обычный MSYS2. Установите пакеты через pacman в правильном терминале.
 
 ## 📝 Лицензия
 Этот проект создан в образовательных целях. Вы можете свободно использовать и модифицировать код.
