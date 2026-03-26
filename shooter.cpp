@@ -23,21 +23,21 @@ public:
     Player() : fireTimer(0) {
         shape.setSize(sf::Vector2f(40, 40));
         shape.setFillColor(sf::Color::Green);
-        shape.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
-        shape.setOrigin(20, 20);
+        shape.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
+        shape.setOrigin(sf::Vector2f(20, 20));
     }
     
     void update(float dt) {
         sf::Vector2f movement(0, 0);
         
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) movement.y -= 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) movement.y += 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) movement.x -= 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) movement.x += 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || 
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) movement.y -= 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || 
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) movement.y += 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || 
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) movement.x -= 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || 
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) movement.x += 1;
         
         // Нормализация диагонального движения
         if (movement.x != 0 || movement.y != 0) {
@@ -81,7 +81,7 @@ public:
     Bullet() : active(false) {
         shape.setRadius(5);
         shape.setFillColor(sf::Color::Yellow);
-        shape.setOrigin(5, 5);
+        shape.setOrigin(sf::Vector2f(5, 5));
     }
     
     void spawn(sf::Vector2f position, sf::Vector2f direction) {
@@ -116,7 +116,7 @@ public:
     Enemy() : active(false) {
         shape.setSize(sf::Vector2f(30, 30));
         shape.setFillColor(sf::Color::Red);
-        shape.setOrigin(15, 15);
+        shape.setOrigin(sf::Vector2f(15, 15));
     }
     
     void spawn() {
@@ -124,16 +124,16 @@ public:
         int side = rand() % 4;
         switch(side) {
             case 0: // верх
-                shape.setPosition(rand() % WINDOW_WIDTH, -30);
+                shape.setPosition(sf::Vector2f(rand() % WINDOW_WIDTH, -30));
                 break;
             case 1: // низ
-                shape.setPosition(rand() % WINDOW_WIDTH, WINDOW_HEIGHT + 30);
+                shape.setPosition(sf::Vector2f(rand() % WINDOW_WIDTH, WINDOW_HEIGHT + 30));
                 break;
             case 2: // лево
-                shape.setPosition(-30, rand() % WINDOW_HEIGHT);
+                shape.setPosition(sf::Vector2f(-30, rand() % WINDOW_HEIGHT));
                 break;
             case 3: // право
-                shape.setPosition(WINDOW_WIDTH + 30, rand() % WINDOW_HEIGHT);
+                shape.setPosition(sf::Vector2f(WINDOW_WIDTH + 30, rand() % WINDOW_HEIGHT));
                 break;
         }
         active = true;
@@ -195,7 +195,7 @@ int main() {
     scoreText.setFont(font);
     scoreText.setCharacterSize(24);
     scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(10, 10);
+    scoreText.setPosition(sf::Vector2f(10, 10));
     
     sf::Clock clock;
     sf::Clock enemySpawnClock;
@@ -313,7 +313,7 @@ int main() {
                 activeEnemies = 1;
                 
                 // Сброс позиции игрока
-                player.shape.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+                player.shape.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
                 break;
             }
         }
