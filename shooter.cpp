@@ -2,72 +2,65 @@
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
 #include <vector>
-#include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <algorithm>
 
 // Константы игры
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
-const float PLAYER_SPEED = 200.0f;
-const float BULLET_SPEED = 500.0f;
-const float ENEMY_SPEED = 80.0f;
-const float FIRE_RATE = 0.15f; // секунды между выстрелами
+const unsigned int WINDOW_WIDTH = 800;
+const unsigned int WINDOW_HEIGHT = 600;
+const float PLAYER_SPEED = 200.f;
+const float BULLET_SPEED = 500.f;
+const float ENEMY_SPEED = 100.f;
+const float ENEMY_SPAWN_INTERVAL = 1.0f;
 
 // Класс игрока
 class Player {
 public:
-    sf::RectangleShape shape;
-    float fireTimer;
-    
-    Player() : fireTimer(0) {
-        shape.setSize(sf::Vector2f(40, 40));
+    sf::CircleShape shape;
+    float speed;
+    int score;
+    bool isAlive;
+
+    Player() {
+        shape.setRadius(15.f);
         shape.setFillColor(sf::Color::Green);
-        shape.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
-        shape.setOrigin(sf::Vector2f(20, 20));
+        shape.setOrigin(15.f, 15.f);
+        shape.setPosition(WINDOW_WIDTH / 2.f, WINDOW_HEIGHT / 2.f);
+        speed = PLAYER_SPEED;
+        score = 0;
+        isAlive = true;
     }
-    
-    void update(float dt) {
-        sf::Vector2f movement(0, 0);
-        
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) movement.y -= 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) movement.y += 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) movement.x -= 1;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || 
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) movement.x += 1;
-        
-        // Нормализация диагонального движения
-        if (movement.x != 0 || movement.y != 0) {
+
+    void update(float dt, const sf::Vector2i& mousePos) {
+        sf::Vector2f movement(0.f, 0.f);
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+            movement.y -= 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+            movement.y += 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            movement.x -= 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            movement.x += 1.f;
+
+        if (movement.x != 0.f || movement.y != 0.f) {
             float length = std::sqrt(movement.x * movement.x + movement.y * movement.y);
-            movement.x /= length;
-            movement.y /= length;
+            movement /= length;
         }
-        
-        shape.move(movement * PLAYER_SPEED * dt);
-        
-        // Ограничение пределами экрана
-        sf::Vector2f pos = shape.getPosition();
-        pos.x = std::max(20.0f, std::min(pos.x, (float)WINDOW_WIDTH - 20));
-        pos.y = std::max(20.0f, std::min(pos.y, (float)WINDOW_HEIGHT - 20));
-        shape.setPosition(pos);
-        
-        // Таймер стрельбы
-        if (fireTimer > 0) fireTimer -= dt;
-    }
-    
-    bool canFire() const {
-        return fireTimer <= 0;
-    }
-    
-    void fire() {
-        fireTimer = FIRE_RATE;
-    }
-    
-    sf::Vector2f getPosition() const {
-        return shape.getPosition();
+
+        shape.move(movement * speed * dt);
+
+        if (shape.getPosition().x < 0) shape.setPosition(0.f, shape.getPosition().y);
+        if (shape.getPosition().x > WINDOW_WIDTH) shape.setPosition((float)WINDOW_WIDTH, shape.getPosition().y);
+        if (shape.getPosition().y < 0) shape.setPosition(shape.getPosition().x, 0.f);
+        if (shape.getPosition().y > WINDOW_HEIGHT) shape.setPosition(shape.getPosition().x, (float)WINDOW_HEIGHT);
+
+        float angle = std::atan2(mousePos.y - shape.getPosition().y, mousePos.x - shape.getPosition().x);
+        shape.setRotation(angle * 180.f / 3.14159f);
     }
 };
 
@@ -77,31 +70,29 @@ public:
     sf::CircleShape shape;
     sf::Vector2f velocity;
     bool active;
-    
+
     Bullet() : active(false) {
-        shape.setRadius(5);
+        shape.setRadius(5.f);
         shape.setFillColor(sf::Color::Yellow);
-        shape.setOrigin(sf::Vector2f(5, 5));
+        shape.setOrigin(5.f, 5.f);
     }
-    
-    void spawn(sf::Vector2f position, sf::Vector2f direction) {
-        shape.setPosition(position);
+
+    void fire(sf::Vector2f startPos, sf::Vector2f direction) {
+        shape.setPosition(startPos);
         velocity = direction * BULLET_SPEED;
         active = true;
     }
-    
+
     void update(float dt) {
-        if (!active) return;
-        
-        shape.move(velocity * dt);
-        
-        // Деактивация если за пределами экрана
-        sf::Vector2f pos = shape.getPosition();
-        if (pos.x < 0 || pos.x > WINDOW_WIDTH || pos.y < 0 || pos.y > WINDOW_HEIGHT) {
-            active = false;
+        if (active) {
+            shape.move(velocity * dt);
+            if (shape.getPosition().x < -10 || shape.getPosition().x > WINDOW_WIDTH + 10 ||
+                shape.getPosition().y < -10 || shape.getPosition().y > WINDOW_HEIGHT + 10) {
+                active = false;
+            }
         }
     }
-    
+
     sf::FloatRect getBounds() const {
         return shape.getGlobalBounds();
     }
@@ -111,234 +102,191 @@ public:
 class Enemy {
 public:
     sf::RectangleShape shape;
+    float speed;
     bool active;
-    
+
     Enemy() : active(false) {
-        shape.setSize(sf::Vector2f(30, 30));
+        shape.setSize(sf::Vector2f(30.f, 30.f));
         shape.setFillColor(sf::Color::Red);
-        shape.setOrigin(sf::Vector2f(15, 15));
+        shape.setOrigin(15.f, 15.f);
+        speed = ENEMY_SPEED;
     }
-    
+
     void spawn() {
-        // Случайная позиция по краям экрана
         int side = rand() % 4;
         switch(side) {
-            case 0: // верх
-                shape.setPosition(sf::Vector2f(rand() % WINDOW_WIDTH, -30));
+            case 0:
+                shape.setPosition(sf::Vector2f((float)(rand() % WINDOW_WIDTH), -30.f));
                 break;
-            case 1: // низ
-                shape.setPosition(sf::Vector2f(rand() % WINDOW_WIDTH, WINDOW_HEIGHT + 30));
+            case 1:
+                shape.setPosition(sf::Vector2f((float)(rand() % WINDOW_WIDTH), WINDOW_HEIGHT + 30.f));
                 break;
-            case 2: // лево
-                shape.setPosition(sf::Vector2f(-30, rand() % WINDOW_HEIGHT));
+            case 2:
+                shape.setPosition(sf::Vector2f(-30.f, (float)(rand() % WINDOW_HEIGHT)));
                 break;
-            case 3: // право
-                shape.setPosition(sf::Vector2f(WINDOW_WIDTH + 30, rand() % WINDOW_HEIGHT));
+            case 3:
+                shape.setPosition(sf::Vector2f(WINDOW_WIDTH + 30.f, (float)(rand() % WINDOW_HEIGHT)));
                 break;
         }
         active = true;
+        speed = ENEMY_SPEED + (rand() % 50);
     }
-    
-    void update(float dt, sf::Vector2f playerPos) {
-        if (!active) return;
-        
-        sf::Vector2f dir = playerPos - shape.getPosition();
-        float length = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-        if (length > 0) {
-            dir.x /= length;
-            dir.y /= length;
+
+    void update(float dt, sf::Vector2f targetPos) {
+        if (active) {
+            sf::Vector2f direction = targetPos - shape.getPosition();
+            float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+            if (length > 0) {
+                direction /= length;
+                shape.move(direction * speed * dt);
+            }
         }
-        
-        shape.move(dir * ENEMY_SPEED * dt);
     }
-    
+
     sf::FloatRect getBounds() const {
         return shape.getGlobalBounds();
     }
 };
 
 int main() {
-    srand(static_cast<unsigned>(time(nullptr)));
-    
-    // Создание окна
-    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), 
-                           "Basic Shooter - WASD to move, Mouse to aim and shoot");
+    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML Shooter");
     window.setFramerateLimit(60);
+
+    srand(static_cast<unsigned>(time(nullptr)));
+
+    sf::Font font;
+    std::string fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
     
-    // Инициализация объектов
+    if (!font.loadFromFile(fontPath)) {
+        std::cerr << "Warning: Could not load font. Text will not be displayed." << std::endl;
+    }
+
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setString("Score: 0");
+    scoreText.setCharacterSize(30);
+    scoreText.setFillColor(sf::Color::White);
+    scoreText.setPosition(10.f, 10.f);
+
     Player player;
     std::vector<Bullet> bullets;
     std::vector<Enemy> enemies;
-    
-    // Предварительное создание пуль и врагов
-    for (int i = 0; i < 10; i++) {
-        bullets.push_back(Bullet());
-    }
-    for (int i = 0; i < 5; i++) {
-        enemies.push_back(Enemy());
-    }
-    
-    // Спавн первого врага
-    enemies[0].spawn();
-    int activeEnemies = 1;
-    
-    int score = 0;
-    sf::Font font;
-    
-    // Попытка загрузить шрифт (если не получится, просто не будем отображать счет)
-    // Используем системный шрифт или дефолтный
-    if (!font.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
-        // Шрифт не загрузился, но игра продолжит работу
-    }
-    
-    sf::Text scoreText;
-    scoreText.setFont(font);
-    scoreText.setCharacterSize(24);
-    scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(sf::Vector2f(10, 10));
-    
+
     sf::Clock clock;
     sf::Clock enemySpawnClock;
-    float enemySpawnInterval = 2.0f; // секунды
-    
-    // Игровой цикл
+    float enemySpawnTimer = 0.f;
+    bool gameOver = false;
+
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
-        
-        // Обработка событий
+
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
             
-            // Стрельба по клику мыши
-            if (event.type == sf::Event::MouseButtonPressed && 
-                event.mouseButton.button == sf::Mouse::Left) {
-                if (player.canFire()) {
-                    player.fire();
+            if (event.type == sf::Event::MouseButtonPressed && !gameOver) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    Bullet bullet;
+                    sf::Vector2f playerPos = player.shape.getPosition();
+                    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
                     
-                    // Находим свободную пулю
-                    for (auto& bullet : bullets) {
-                        if (!bullet.active) {
-                            sf::Vector2f playerPos = player.getPosition();
-                            sf::Vector2f mousePos = window.mapPixelToCoords(
-                                sf::Mouse::getPosition(window));
-                            
-                            sf::Vector2f dir = mousePos - playerPos;
-                            float length = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-                            if (length > 0) {
-                                dir.x /= length;
-                                dir.y /= length;
-                            }
-                            
-                            bullet.spawn(playerPos, dir);
-                            break;
-                        }
+                    sf::Vector2f direction((float)(mousePos.x - playerPos.x), (float)(mousePos.y - playerPos.y));
+                    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+                    if (length > 0) direction /= length;
+                    
+                    bullet.fire(playerPos, direction);
+                    bullets.push_back(bullet);
+                }
+            }
+            
+            if (event.type == sf::Event::KeyPressed && gameOver) {
+                if (event.key.code == sf::Keyboard::Space) {
+                    player = Player();
+                    bullets.clear();
+                    enemies.clear();
+                    scoreText.setString("Score: 0");
+                    gameOver = false;
+                }
+            }
+        }
+
+        if (!gameOver) {
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            player.update(dt, mousePos);
+
+            for (auto& bullet : bullets) {
+                bullet.update(dt);
+            }
+            bullets.erase(std::remove_if(bullets.begin(), bullets.end(), 
+                [](const Bullet& b) { return !b.active; }), bullets.end());
+
+            enemySpawnTimer += dt;
+            if (enemySpawnTimer >= ENEMY_SPAWN_INTERVAL) {
+                Enemy enemy;
+                enemy.spawn();
+                enemies.push_back(enemy);
+                enemySpawnTimer = 0.f;
+            }
+
+            for (auto& enemy : enemies) {
+                enemy.update(dt, player.shape.getPosition());
+            }
+
+            for (auto& bullet : bullets) {
+                if (!bullet.active) continue;
+                for (auto& enemy : enemies) {
+                    if (!enemy.active) continue;
+                    if (bullet.getBounds().intersects(enemy.getBounds())) {
+                        bullet.active = false;
+                        enemy.active = false;
+                        player.score += 10;
+                        scoreText.setString("Score: " + std::to_string(player.score));
+                        break;
                     }
                 }
             }
-        }
-        
-        // Обновление игрока
-        player.update(dt);
-        
-        // Обновление пуль
-        for (auto& bullet : bullets) {
-            bullet.update(dt);
-        }
-        
-        // Спавн врагов
-        if (enemySpawnClock.getElapsedTime().asSeconds() >= enemySpawnInterval) {
-            enemySpawnClock.restart();
-            
-            // Находим свободного врага
-            for (auto& enemy : enemies) {
-                if (!enemy.active) {
-                    enemy.spawn();
-                    activeEnemies++;
-                    break;
-                }
-            }
-            
-            // Усложнение со временем
-            if (enemySpawnInterval > 0.5f) {
-                enemySpawnInterval -= 0.05f;
-            }
-        }
-        
-        // Обновление врагов
-        for (auto& enemy : enemies) {
-            if (enemy.active) {
-                enemy.update(dt, player.getPosition());
-            }
-        }
-        
-        // Проверка столкновений
-        for (auto& bullet : bullets) {
-            if (!bullet.active) continue;
-            
-            for (auto& enemy : enemies) {
-                if (!enemy.active) continue;
-                
-                if (bullet.getBounds().intersects(enemy.getBounds())) {
-                    bullet.active = false;
-                    enemy.active = false;
-                    activeEnemies--;
-                    score += 10;
-                    scoreText.setString("Score: " + std::to_string(score));
+
+            enemies.erase(std::remove_if(enemies.begin(), enemies.end(), 
+                [](const Enemy& e) { return !e.active; }), enemies.end());
+
+            for (const auto& enemy : enemies) {
+                if (player.shape.getGlobalBounds().intersects(enemy.getBounds())) {
+                    gameOver = true;
                     break;
                 }
             }
         }
-        
-        // Проверка столкновения игрока с врагом
-        for (auto& enemy : enemies) {
-            if (!enemy.active) continue;
-            
-            if (player.shape.getGlobalBounds().intersects(enemy.getBounds())) {
-                // Game Over - перезапуск
-                score = 0;
-                scoreText.setString("Score: 0");
-                enemySpawnInterval = 2.0f;
-                
-                // Деактивируем всех врагов
-                for (auto& e : enemies) {
-                    e.active = false;
-                }
-                activeEnemies = 0;
-                
-                // Спавним первого врага
-                enemies[0].spawn();
-                activeEnemies = 1;
-                
-                // Сброс позиции игрока
-                player.shape.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
-                break;
-            }
-        }
-        
-        // Отрисовка
+
         window.clear(sf::Color::Black);
         
-        window.draw(player.shape);
-        
-        for (auto& bullet : bullets) {
-            if (bullet.active) {
-                window.draw(bullet.shape);
-            }
+        if (!gameOver) {
+            window.draw(player.shape);
         }
         
-        for (auto& enemy : enemies) {
-            if (enemy.active) {
-                window.draw(enemy.shape);
-            }
+        for (const auto& bullet : bullets) {
+            window.draw(bullet.shape);
+        }
+        
+        for (const auto& enemy : enemies) {
+            window.draw(enemy.shape);
         }
         
         window.draw(scoreText);
-        
+
+        if (gameOver) {
+            sf::Text gameOverText;
+            gameOverText.setFont(font);
+            gameOverText.setString("GAME OVER!\nPress SPACE to restart");
+            gameOverText.setCharacterSize(40);
+            gameOverText.setFillColor(sf::Color::Red);
+            gameOverText.setPosition(WINDOW_WIDTH / 2.f - 150.f, WINDOW_HEIGHT / 2.f - 50.f);
+            window.draw(gameOverText);
+        }
+
         window.display();
     }
-    
+
     return 0;
 }
